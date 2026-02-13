@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import supertest from "supertest";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
 import { errorHandler } from "../src/middleware/error-handler.js";
 
@@ -59,6 +60,10 @@ function createTestJwt(
 
 function createMockPrisma() {
   return {
+    user: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
     environment: {
       findFirst: vi.fn(),
       create: vi.fn(),
@@ -727,26 +732,92 @@ describe("GET /v1/admin/audit", () => {
   });
 });
 
-// ── Auth Endpoint ──────────────────────────────────────────
+// ── Auth Endpoints ─────────────────────────────────────────
+
+const TEST_PASSWORD = "admin123";
+const TEST_PASSWORD_HASH = bcrypt.hashSync(TEST_PASSWORD, 10);
+const TEST_USER = {
+  id: "user-1",
+  email: "admin@example.com",
+  passwordHash: TEST_PASSWORD_HASH,
+  role: "admin",
+  createdAt: new Date().toISOString(),
+};
 
 describe("POST /v1/admin/auth/login", () => {
   it("returns JWT for valid credentials", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
+
     const res = await supertest(app.server)
       .post("/v1/admin/auth/login")
-      .send({ email: "admin@example.com", password: "admin123" });
+      .send({ email: "admin@example.com", password: TEST_PASSWORD });
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("token");
     expect(res.body.expiresIn).toBe(3600);
   });
 
-  it("returns 401 for invalid credentials", async () => {
+  it("returns 401 for wrong password", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
+
     const res = await supertest(app.server)
       .post("/v1/admin/auth/login")
       .send({ email: "admin@example.com", password: "wrong" });
 
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Invalid credentials");
+  });
+
+  it("returns 401 for non-existent user", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+
+    const res = await supertest(app.server)
+      .post("/v1/admin/auth/login")
+      .send({ email: "nobody@example.com", password: "test" });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Invalid credentials");
+  });
+});
+
+describe("POST /v1/admin/auth/register", () => {
+  it("creates a new user and returns 201", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.user.create.mockResolvedValue({
+      id: "user-2",
+      email: "new@example.com",
+      role: "editor",
+      createdAt: new Date().toISOString(),
+    });
+
+    const res = await supertest(app.server)
+      .post("/v1/admin/auth/register")
+      .send({ email: "new@example.com", password: "securepass123" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.email).toBe("new@example.com");
+    expect(res.body.role).toBe("editor");
+    expect(res.body).not.toHaveProperty("passwordHash");
+  });
+
+  it("returns 409 for duplicate email", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
+
+    const res = await supertest(app.server)
+      .post("/v1/admin/auth/register")
+      .send({ email: "admin@example.com", password: "securepass123" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe("Email already registered");
+  });
+
+  it("returns 400 for password too short", async () => {
+    const res = await supertest(app.server)
+      .post("/v1/admin/auth/register")
+      .send({ email: "test@example.com", password: "short" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Validation error");
   });
 });
 

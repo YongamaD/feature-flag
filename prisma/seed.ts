@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { randomBytes, createHash } from "crypto";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -11,6 +12,18 @@ function generateApiKey(): { raw: string; hash: string } {
 
 async function main() {
   console.log("Seeding database...");
+
+  // Create default admin user
+  const adminPassword = "admin123";
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+  const adminUser = await prisma.user.create({
+    data: {
+      email: "admin@example.com",
+      passwordHash,
+      role: "admin",
+    },
+  });
+  console.log(`Admin user created: ${adminUser.email} (password: ${adminPassword})`);
 
   const org = await prisma.organization.create({
     data: { name: "Acme Corp" },
