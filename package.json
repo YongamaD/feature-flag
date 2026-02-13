@@ -6,7 +6,7 @@
     "build": "pnpm -r build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit -p tsconfig.base.json",
+    "lint": "pnpm --filter @feature-flags/evaluator exec tsc --noEmit && pnpm --filter @feature-flags/api exec tsc --noEmit",
     "db:generate": "prisma generate --schema=prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "db:migrate:deploy": "prisma migrate deploy --schema=prisma/schema.prisma",
