@@ -35,8 +35,8 @@ export async function buildApp() {
     max: 100,
     timeWindow: "1 second",
     keyGenerator: (request) => {
-      // Rate limit by API key or IP
-      return request.headers.authorization || request.ip;
+      // Rate limit by environment ID (SDK) or authorization header (admin) or IP
+      return request.environmentId || request.headers.authorization || request.ip;
     },
   });
   await app.register(prismaPlugin);

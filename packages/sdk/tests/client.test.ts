@@ -120,7 +120,8 @@ describe("FeatureFlagClient", () => {
     expect(client.getVariant("new-checkout")).toBe("control");
   });
 
-  it("keeps last snapshot on failed sync", async () => {
+  it("keeps last snapshot on failed sync after retries", async () => {
+    vi.useFakeTimers();
     const failFetch = vi.fn().mockRejectedValue(new Error("Network error"));
     client = new FeatureFlagClient(
       { envKey: "ff_test", baseUrl: "http://localhost:3000" },
@@ -132,10 +133,42 @@ describe("FeatureFlagClient", () => {
 
     // Swap to failing fetch
     (client as any)._fetchFn = failFetch;
-    await client.sync();
+    const syncPromise = client.sync();
+    // Advance through all retry delays (1s, 2s, 4s)
+    await vi.advanceTimersByTimeAsync(10_000);
+    await syncPromise;
 
-    // Still has old snapshot
+    // Still has old snapshot after all retries exhausted
     expect(client.isEnabled("new-checkout", { userId: "1" })).toBe(true);
+    // 1 initial + 3 retries = 4 total attempts
+    expect(failFetch).toHaveBeenCalledTimes(4);
+    vi.useRealTimers();
+  });
+
+  it("retries with backoff then succeeds", async () => {
+    vi.useFakeTimers();
+    const mockFetch = vi.fn()
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockSnapshot),
+      });
+
+    client = new FeatureFlagClient(
+      { envKey: "ff_test", baseUrl: "http://localhost:3000" },
+      mockFetch as any
+    );
+
+    const syncPromise = client.sync();
+    // Advance through retry delays
+    await vi.advanceTimersByTimeAsync(5_000);
+    await syncPromise;
+
+    // Succeeded on 3rd attempt
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(client.getSnapshot()).toEqual(mockSnapshot);
+    vi.useRealTimers();
   });
 
   it("init starts auto-refresh", async () => {

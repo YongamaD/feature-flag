@@ -749,3 +749,31 @@ describe("POST /v1/admin/auth/login", () => {
     expect(res.body.error).toBe("Invalid credentials");
   });
 });
+
+// ── Load Sanity Test ───────────────────────────────────────
+
+describe("Load sanity: GET /v1/flags/snapshot", () => {
+  it("handles 1000 concurrent requests without server errors", async () => {
+    seedApiKeyAuth(mockPrisma);
+    seedSnapshot(mockRedis, 5);
+
+    const requests = Array.from({ length: 1000 }, () =>
+      app.inject({
+        method: "GET",
+        url: "/v1/flags/snapshot",
+        headers: { authorization: `Bearer ${TEST_API_KEY}` },
+      })
+    );
+
+    const responses = await Promise.all(requests);
+
+    // No 5xx server errors
+    const serverErrors = responses.filter((r) => r.statusCode >= 500);
+    expect(serverErrors).toHaveLength(0);
+
+    // All responses are either 200 (success) or 429 (rate limited)
+    for (const res of responses) {
+      expect([200, 429]).toContain(res.statusCode);
+    }
+  });
+});
