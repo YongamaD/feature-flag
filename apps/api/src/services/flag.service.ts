@@ -38,7 +38,7 @@ export async function createFlag(prisma: PrismaClient, input: CreateFlagInput) {
         entityKey: input.key,
         diffJson: {
           version: 1,
-          state: input.initialState,
+          state: input.initialState as any,
         },
       },
     }),
@@ -100,8 +100,8 @@ export async function updateDraftState(
         action: "UPDATE",
         entityKey: key,
         diffJson: {
-          old: oldState,
-          new: stateJson,
+          old: oldState as any,
+          new: stateJson as any,
         },
       },
     }),

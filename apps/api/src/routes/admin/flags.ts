@@ -14,7 +14,7 @@ const flagStateSchema = z.object({
         z.object({
           attr: z.string(),
           op: z.enum(["EQ", "NEQ", "IN", "NOT_IN", "GT", "LT", "CONTAINS"]),
-          value: z.unknown(),
+          value: z.any(),
         })
       ),
       result: z.object({
