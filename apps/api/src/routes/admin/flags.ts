@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import type { FlagState } from "@feature-flags/evaluator";
 import { jwtAuth } from "../../middleware/auth.js";
 import * as flagService from "../../services/flag.service.js";
 
@@ -67,7 +68,7 @@ export default async function flagRoutes(fastify: FastifyInstance) {
       key: body.key,
       description: body.description,
       environmentId: body.environmentId,
-      initialState: body.initialState,
+      initialState: body.initialState as FlagState,
       createdBy: request.adminUser!.sub,
     });
 
@@ -108,7 +109,7 @@ export default async function flagRoutes(fastify: FastifyInstance) {
         fastify.prisma,
         body.environmentId,
         key,
-        body.stateJson,
+        body.stateJson as FlagState,
         request.adminUser!.sub
       );
 

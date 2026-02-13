@@ -166,7 +166,7 @@ export async function rollbackFlag(
 
   if (!flag) return null;
 
-  const targetVer = flag.versions.find((v) => v.version === targetVersion);
+  const targetVer = flag.versions.find((v: { version: number }) => v.version === targetVersion);
   if (!targetVer) return null;
 
   const latestVersion = flag.versions[0].version;
