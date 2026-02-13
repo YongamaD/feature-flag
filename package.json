@@ -16,8 +16,10 @@
     "docker:down": "docker compose -f infrastructure/docker/docker-compose.yml down"
   },
   "devDependencies": {
+    "@types/autocannon": "^7.12.7",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^3.2.4",
+    "autocannon": "^8.0.0",
     "prisma": "^6.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.7.0",
