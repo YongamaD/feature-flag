@@ -49,6 +49,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
       - name: Typecheck
         run: pnpm --filter @feature-flags/evaluator build && pnpm --filter @feature-flags/api build
 
