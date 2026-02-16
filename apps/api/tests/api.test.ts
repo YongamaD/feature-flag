@@ -781,7 +781,7 @@ describe("POST /v1/admin/auth/login", () => {
 });
 
 describe("POST /v1/admin/auth/register", () => {
-  it("creates a new user and returns 201", async () => {
+  it("creates a new user and returns 201 with admin JWT", async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
     mockPrisma.user.create.mockResolvedValue({
       id: "user-2",
@@ -792,6 +792,7 @@ describe("POST /v1/admin/auth/register", () => {
 
     const res = await supertest(app.server)
       .post("/v1/admin/auth/register")
+      .set("Authorization", `Bearer ${createTestJwt("admin@example.com", "admin")}`)
       .send({ email: "new@example.com", password: "securepass123" });
 
     expect(res.status).toBe(201);
@@ -800,11 +801,30 @@ describe("POST /v1/admin/auth/register", () => {
     expect(res.body).not.toHaveProperty("passwordHash");
   });
 
+  it("returns 403 for non-admin JWT", async () => {
+    const res = await supertest(app.server)
+      .post("/v1/admin/auth/register")
+      .set("Authorization", `Bearer ${createTestJwt("editor@example.com", "editor")}`)
+      .send({ email: "new@example.com", password: "securepass123" });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("Admin role required");
+  });
+
+  it("returns 401 without JWT", async () => {
+    const res = await supertest(app.server)
+      .post("/v1/admin/auth/register")
+      .send({ email: "new@example.com", password: "securepass123" });
+
+    expect(res.status).toBe(401);
+  });
+
   it("returns 409 for duplicate email", async () => {
     mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
 
     const res = await supertest(app.server)
       .post("/v1/admin/auth/register")
+      .set("Authorization", `Bearer ${createTestJwt("admin@example.com", "admin")}`)
       .send({ email: "admin@example.com", password: "securepass123" });
 
     expect(res.status).toBe(409);
@@ -814,6 +834,7 @@ describe("POST /v1/admin/auth/register", () => {
   it("returns 400 for password too short", async () => {
     const res = await supertest(app.server)
       .post("/v1/admin/auth/register")
+      .set("Authorization", `Bearer ${createTestJwt("admin@example.com", "admin")}`)
       .send({ email: "test@example.com", password: "short" });
 
     expect(res.status).toBe(400);

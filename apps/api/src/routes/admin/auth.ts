@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import { jwtAuth } from "../../middleware/auth";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -41,8 +42,12 @@ export default async function authRoutes(fastify: FastifyInstance) {
     return { token, expiresIn: 3600 };
   });
 
-  // Register (admin-only in production — for now, open for bootstrapping)
-  fastify.post("/v1/admin/auth/register", async (request, reply) => {
+  // Register (admin-only)
+  fastify.post("/v1/admin/auth/register", { preHandler: jwtAuth }, async (request, reply) => {
+    if (request.adminUser?.role !== "admin") {
+      return reply.code(403).send({ error: "Admin role required" });
+    }
+
     const body = registerSchema.parse(request.body);
 
     const existing = await fastify.prisma.user.findUnique({
