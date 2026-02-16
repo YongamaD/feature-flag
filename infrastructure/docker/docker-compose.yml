@@ -49,6 +49,19 @@ services:
     profiles:
       - full
 
+  dashboard:
+    build:
+      context: ../../
+      dockerfile: apps/dashboard/Dockerfile
+    container_name: ff-dashboard
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_started
+    profiles:
+      - full
+
 volumes:
   pgdata:
   redisdata:

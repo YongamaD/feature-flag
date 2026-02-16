@@ -52,6 +52,9 @@ jobs:
       - name: Typecheck
         run: pnpm --filter @feature-flags/evaluator build && pnpm --filter @feature-flags/api build
 
+      - name: Build dashboard
+        run: pnpm --filter @feature-flags/dashboard build
+
       - name: Lint
         run: pnpm lint
 

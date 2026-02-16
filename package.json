@@ -3,10 +3,11 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter @feature-flags/api dev",
+    "dev:dashboard": "pnpm --filter @feature-flags/dashboard dev",
     "build": "pnpm -r build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "pnpm --filter @feature-flags/evaluator exec tsc --noEmit && pnpm --filter @feature-flags/api exec tsc --noEmit",
+    "lint": "pnpm --filter @feature-flags/evaluator exec tsc --noEmit && pnpm --filter @feature-flags/api exec tsc --noEmit && pnpm --filter @feature-flags/dashboard exec tsc --noEmit",
     "db:generate": "prisma generate --schema=prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "db:migrate:deploy": "prisma migrate deploy --schema=prisma/schema.prisma",
